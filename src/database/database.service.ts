@@ -1,53 +1,70 @@
 // Database Service
 // ================
-// Handles PostgreSQL database connections and queries.
-// Uses the pg library following the repository's conventions.
+// Handles MySQL database connections and queries.
+// Uses the mysql2 library following standard conventions.
 
-import { Pool, QueryResult } from 'pg';
+import mysql from 'mysql2/promise';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface DatabaseClient {
-  query: (sql: string, params?: any[]) => Promise<QueryResult<any>>;
+  query: (sql: string, params?: any[]) => Promise<any>;
   transaction: (fn: (trx: DatabaseClient) => Promise<any>) => Promise<any>;
 }
 
 export class DatabaseService implements DatabaseClient {
-  private pool: Pool;
+  private pool: mysql.Pool;
 
   constructor() {
-    const connectionString = process.env.DATABASE_URL;
-    this.pool = new Pool({
-      connectionString,
-      // For local development without DATABASE_URL, use a default
-      connectionTimeoutMillis: 5000,
-      idleTimeoutMillis: 30000,
+    const host = process.env.DB_HOST || 'localhost';
+    const port = parseInt(process.env.DB_PORT || '3306', 10);
+    const user = process.env.DB_USER || 'root';
+    const password = process.env.DB_PASSWORD || '';
+    const database = process.env.DB_NAME || 'writeoutreach';
+
+    this.pool = mysql.createPool({
+      host,
+      port,
+      user,
+      password,
+      database,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      connectTimeout: 60000,
     });
   }
 
   /** Execute a SQL query with optional parameters */
-  async query(sql: string, params?: any[]): Promise<QueryResult<any>> {
-    const client = this.pool.connect();
+  async query(sql: string, params?: any[]): Promise<any> {
+    const connection = await this.pool.getConnection();
     try {
-      return await client.query(sql, params);
+      // Replace UUID v4 placeholders if no params provided for the first value
+      let queryString = sql;
+      if (!params) {
+        queryString = sql.replace(/\$\{uuid\}/g, uuidv4);
+      }
+      const [results] = await connection.query(queryString, params);
+      return results;
     } finally {
-      client.release();
+      connection.release();
     }
   }
 
   /** Execute a transaction */
   async transaction<T>(fn: (trx: DatabaseClient) => Promise<T>): Promise<T> {
-    const client = this.pool.connect();
+    const connection = await this.pool.getConnection();
     try {
-      await client.query('BEGIN');
+      await connection.beginTransaction();
       const result = await fn({
-        query: (sql: string, params?: any[]) => client.query(sql, params),
+        query: (sql: string, params?: any[]) => connection.query(sql, params),
       });
-      await client.query('COMMIT');
+      await connection.commit();
       return result;
     } catch (err) {
-      await client.query('ROLLBACK');
+      await connection.rollback();
       throw err;
     } finally {
-      client.release();
+      connection.release();
     }
   }
 

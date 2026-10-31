@@ -59,18 +59,10 @@ write-outreach/
 └── migration/                  # Database schema migrations
 
 database/
-└── database.service.ts         # PostgreSQL connection
+└── database.service.ts         # MySQL connection
 
 app.ts                         # Application entry point
 ```
-
-**Key Design Decisions:**
-
-- **Provider-abstraction**: AI provider adapter separates LLM logic from business logic
-- **Structured output**: LLM responses validated against JSON schema before persistence
-- **Revision tracking**: All generations and modifications tracked with action types
-- **User isolation**: Per-user generation history with database-level authorization
-- **Rate limiting**: Respects Gemini free tier (15 requests/minute)
 
 ---
 
@@ -464,8 +456,8 @@ GET /api/write-outreach/:id/export
 
 | Column | Type | Constraints | Description |
 |---|---|---|---|
-| `id` | UUID | PK, DEFAULT `gen_random_uuid()` | Primary key |
-| `user_id` | UUID | NOT NULL | Authenticated user identity |
+| `id` | CHAR(36) | PK, DEFAULT `uuid()` | Primary key |
+| `user_id` | CHAR(36) | NOT NULL | Authenticated user identity |
 | `lead_name` | VARCHAR(255) | NOT NULL | Prospect first name |
 | `company` | VARCHAR(255) | NOT NULL | Company name |
 | `role` | VARCHAR(255) | NOT NULL | Job title/role |
@@ -473,8 +465,8 @@ GET /api/write-outreach/:id/export
 | `initial_tone` | VARCHAR(50) | NOT NULL | Tone used for initial generation |
 | `recommended_channel` | VARCHAR(50) | NOT NULL | AI-recommended channel |
 | `selected_channel` | VARCHAR(50) | NULLable | User-selected channel |
-| `created_at` | TIMESTAMPTZ | DEFAULT `NOW()` | Creation timestamp |
-| `updated_at` | TIMESTAMPTZ | DEFAULT `NOW()` | Last update timestamp |
+| `created_at` | DATETIME | NOT NULL DEFAULT `CURRENT_TIMESTAMP` | Creation timestamp |
+| `updated_at` | DATETIME | NOT NULL DEFAULT `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` | Last update timestamp |
 
 **Indexes**:
 
@@ -487,14 +479,14 @@ GET /api/write-outreach/:id/export
 
 | Column | Type | Constraints | Description |
 |---|---|---|---|
-| `id` | UUID | PK, DEFAULT `gen_random_uuid()` | Primary key |
-| `generation_id` | UUID | FK → `outreach_generations(id)`, CASCADE | Links to generation |
+| `id` | CHAR(36) | PK, DEFAULT `uuid()` | Primary key |
+| `generation_id` | CHAR(36) | FK → `outreach_generations(id)`, CASCADE | Links to generation |
 | `channel` | VARCHAR(50) | NOT NULL | "email" or "linkedin" |
 | `version_number` | INTEGER | NOT NULL | 1 = initial, 2 = first modification, etc. |
 | `tone` | VARCHAR(50) | NOT NULL | Tone used for this version |
-| `content` | JSONB | NOT NULL | The message content (subject/body or message) |
+| `content` | JSON | NOT NULL | The message content (subject/body or message) |
 | `action_type` | VARCHAR(20) | NOT NULL | 'generated', 'tone_adjusted', or 'refined' |
-| `created_at` | TIMESTAMPTZ | DEFAULT `NOW()` | Revision timestamp |
+| `created_at` | DATETIME | NOT NULL DEFAULT `CURRENT_TIMESTAMP` | Revision timestamp |
 
 **Indexes**:
 
@@ -515,7 +507,11 @@ The utility uses **Google Gemini AI**. Configure the following environment varia
 |---|---|---|
 | `GEMINI_API_KEY` | **Yes** | Gemini API key from [Google AI Studio](https://aistudio.google.com/) |
 | `GEMINI_MODEL` | No | Model name (default: `gemini-2.0-flash`) |
-| `DATABASE_URL` | **Yes** | PostgreSQL connection string (e.g., `postgresql://user:pass@host:port/db`) |
+| `DB_HOST` | **Yes** | MySQL hostname (default: `localhost`) |
+| `DB_PORT` | **Yes** | MySQL port (default: `3306`) |
+| `DB_USER` | **Yes** | MySQL username |
+| `DB_PASSWORD` | **Yes** | MySQL password |
+| `DB_NAME` | **Yes** | MySQL database name (default: `writeoutreach`) |
 | `REDIS_HOST` | No | Redis hostname (default: `localhost`) |
 | `REDIS_PORT` | No | Redis port (default: `6379`) |
 | `REDIS_PASSWORD` | No | Redis password (optional, for production) |
@@ -549,7 +545,7 @@ generationConfig: {
 ### Prerequisites
 
 - **Node.js**: v20 or higher
-- **PostgreSQL**: v13 or higher
+- **MySQL**: v8 or higher
 - **Google Gemini API key**: Register at [AI Studio](https://aistudio.google.com/)
 
 ### Installation
@@ -587,18 +583,20 @@ npm test
 Create a `.env` file in the root directory:
 
 ```env
-# Required
+# MySQL Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_mysql_password_here
+DB_NAME=writeoutreach
+
+# Gemini AI Configuration
 GEMINI_API_KEY=your_gemini_api_key_here
-DATABASE_URL=postgresql://admin:password@localhost:5432/writeoutreach
-
-# Optional
 GEMINI_MODEL=gemini-2.0-flash
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
 
-# Server
+# Application Configuration
 PORT=3000
+NODE_ENV=development
 ```
 
 ### Running Tests

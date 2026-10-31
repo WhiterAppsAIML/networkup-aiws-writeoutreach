@@ -1,9 +1,10 @@
 -- Write Outreach Migration 001: Create outreach_generations table
 -- Creates the main table for storing outreach generation data
+-- MySQL compatible: UUID as CHAR(36), TIMESTAMPTZ as DATETIME
 
 CREATE TABLE IF NOT EXISTS outreach_generations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
+  id CHAR(36) PRIMARY KEY,
+  user_id CHAR(36) NOT NULL,
   lead_name VARCHAR(255) NOT NULL,
   company VARCHAR(255) NOT NULL,
   role VARCHAR(255) NOT NULL,
@@ -11,8 +12,8 @@ CREATE TABLE IF NOT EXISTS outreach_generations (
   initial_tone VARCHAR(50) NOT NULL,
   recommended_channel VARCHAR(50) NOT NULL,
   selected_channel VARCHAR(50),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Index on user_id for user-level history isolation
@@ -31,16 +32,17 @@ CREATE INDEX IF NOT EXISTS idx_outreach_generations_created_at ON outreach_gener
 
 -- Write Outreach Migration 002: Create outreach_message_revisions table
 -- Tracks all message generations and modifications (tone adjustments, refinements)
+-- MySQL compatible: UUID as CHAR(36), JSON content
 
 CREATE TABLE IF NOT EXISTS outreach_message_revisions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  generation_id UUID NOT NULL REFERENCES outreach_generations(id) ON DELETE CASCADE,
+  id CHAR(36) PRIMARY KEY,
+  generation_id CHAR(36) NOT NULL,
   channel VARCHAR(50) NOT NULL,          -- 'email' or 'linkedin'
   version_number INTEGER NOT NULL,       -- 1 = initial, 2 = first adjustment, etc.
   tone VARCHAR(50) NOT NULL,             -- The tone used for this version
-  content JSONB NOT NULL,                -- The generated/refined message content
+  content JSON NOT NULL,                 -- The generated/refined message content
   action_type VARCHAR(20) NOT NULL,      -- 'generated', 'tone_adjusted', 'refined'
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Index on generation_id for tracing revisions

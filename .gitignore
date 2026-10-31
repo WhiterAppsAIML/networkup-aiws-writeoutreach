@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+
+# Build artifacts
+dist/
+*.tls
+
+# Logs
+logs/
+*.log
+
+# Runtime temp files
+*.tmp
+
+# IDE specific
+.vscode/
+.idea/
+
+# Database specific
+*.sql.bak
