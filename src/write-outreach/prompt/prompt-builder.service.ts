@@ -155,7 +155,7 @@ export function buildRefinementPrompt(
   return `
 Refine the following ${channelName} outreach message based on the given instruction.
 
-## Original ${channelName^} Message
+## Original ${channelName} Message
 ${originalContent}
 
 ## Refinement Instruction
@@ -234,4 +234,4 @@ export function validateChannelContent(
     if (!obj.descriptor || typeof obj.descriptor !== 'string') return false;
     return true;
   }
-}
+}}}
