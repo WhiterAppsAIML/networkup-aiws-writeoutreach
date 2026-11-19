@@ -233,4 +233,4 @@ export function validateChannelContent(
     if (!obj.descriptor || typeof obj.descriptor !== 'string') return false;
     return true;
   }
-}
+}}}
