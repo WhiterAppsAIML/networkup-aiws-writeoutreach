@@ -23,20 +23,14 @@ import { RefineInput, RefineResponse } from './types';
 import { AdjustToneInput, AdjustToneResponse } from './types';
 import { SelectChannelInput, SelectChannelResponse } from './types';
 import { ExportInput, ExportResponse } from './types';
-import { DatabaseClient } from './generation/generation.service';
-import { GenerateInput as GenerateInputType } from './types';
-import { observe } from 'rxjs';
+import { INestApplication } from '@nestjs/common';
 
 @ApiTags('write-outreach')
 @Controller('api/write-outreach')
 export class WriteOutreachController {
   private readonly logger = new Logger(WriteOutreachController.name);
 
-  constructor(
-    // Services will be injected by NestJS
-    // @InjectGenerationService() private readonly generationService: GenerationService,
-    // @InjectRecommendationService() private readonly recommendationService: RecommendationService,
-  ) {}
+  constructor() {}
 
   // =====================================================
   // Generate Endpoint
@@ -53,11 +47,6 @@ export class WriteOutreachController {
   @ApiResponse({ status: 429, description: 'Rate limit exceeded' })
   async generate(@Body() body: GenerateInput, @Body('userId') userId: string): Promise<any> {
     this.logger.log(`Generate request - user: ${userId}`);
-
-    // TODO: Inject services via NestJS constructor
-    // For now, use direct service instantiation or pass through
-    // const result = await this.generationService.generate(body, userId);
-    // return result;
 
     // Placeholder response - will be replaced with actual service call
     return {
@@ -242,9 +231,6 @@ export class WriteOutreachController {
     @Body('userId') userId: string,
   ): Promise<any> {
     this.logger.log(`Export request - generation: ${generationId}, user: ${userId}`);
-
-    const scope = query.scope || 'selected';
-    const format = query.format || 'txt';
 
     // TODO: Implement export logic
     return {

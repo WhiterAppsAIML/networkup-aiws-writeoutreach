@@ -137,7 +137,6 @@ Return strictly structured JSON with the recommended channel:
   "recommendedChannel": "email or linkedin"
 }
 `;
-}
 
 /** Builds the refinement prompt for improving existing copy */
 export function buildRefinementPrompt(
@@ -155,7 +154,7 @@ export function buildRefinementPrompt(
   return `
 Refine the following ${channelName} outreach message based on the given instruction.
 
-## Original ${channelName^} Message
+## Original ${channelName} Message
 ${originalContent}
 
 ## Refinement Instruction
@@ -179,7 +178,6 @@ ${tone}
 - Do not override or contradict the original constraints
 - Return ONLY the refined message content, no analysis or explanation
 `;
-}
 
 /** Gets the word count target for a given channel */
 export function getTargetWordCount(channel: Channel): { min: number; max: number } {
@@ -219,7 +217,8 @@ export function validateGenerationResponse(
 export function validateChannelContent(
   content: unknown,
   channel: Channel
-): content is { subject?: string; body?: string; message?: string; descriptor: string } {
+): content is { subject?: string; body?: string; message?: string; descriptor: string }
+{
   if (!content || typeof content !== 'object') return false;
 
   const obj = content as Record<string, unknown>;
